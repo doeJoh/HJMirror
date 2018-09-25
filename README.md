@@ -34,5 +34,9 @@
 
 9. 如果第一次无法获取图像，可能是设备较慢导致，请重试一次
 
-## 本程序还有较多问题，涵盖性能、代码、使用不便等等等等，欢迎好的建议与修改！
+## 改善意见
+
+本程序还有较多问题，涵盖性能、代码、使用不便等等等等，目前依然没有什么实用价值。
+
+About Language, this code write in Chinese, and need translate which this aurthor really got no idea.
 
