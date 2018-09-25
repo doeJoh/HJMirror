@@ -1,0 +1,53 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+project.ext {
+    // 项目标题
+    title = 'HJMirror'
+    // 打包名称
+    baseName = 'HJMirror'
+    // 入口类名
+    mainClass = 'com.hjess.server.MainApp'
+    // 版本信息
+    version = '1.0.0'
+}
+
+// 复制配置文件
+task copyData(type:Copy) {
+    from 'src/main/conf'
+    into 'build/libs'
+}
+
+// release打包
+task release(type: Jar, dependsOn: 'copyData') {
+    manifest {
+        // 清单属性
+        attributes 'Implementation-Title': project.ext.title,
+                'Implementation-Version': project.ext.version,
+                'Main-Class': project.ext.mainClass
+    }
+    // jar包名
+    baseName = project.ext.baseName + project.ext.version
+    // 打包依赖
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+    with jar
+}
+
+// 使用maven
+repositories {
+    mavenCentral()
+}
+
+// 项目依赖
+dependencies {
+    compile 'net.sf.sociaal:chimpchat:22.6.3'
+    compile 'com.android.tools.ddms:ddmlib:24.1.3'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}

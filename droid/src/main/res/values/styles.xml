@@ -1,0 +1,5 @@
+<resources>
+    <!-- 基本App样式 -->
+    <style name="AppTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    </style>
+</resources>

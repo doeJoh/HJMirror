@@ -1,0 +1,46 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 24
+    buildToolsVersion "25.0.3"
+
+    defaultConfig {
+        applicationId "com.hjess.app"
+        minSdkVersion 14
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+    }
+    signingConfigs {
+        release {
+            storeFile file("hjmirror.jks")
+            storePassword "hj1234"
+            keyAlias "hjmirror"
+            keyPassword "hj1234"
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            zipAlignEnabled false
+            shrinkResources false
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            zipAlignEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+android.applicationVariants.all { variant ->
+
+    variant.outputs.each { output ->
+        def file = output.packageApplication.outputFile
+        def fileName = "HJMirror.apk"
+        output.packageApplication.outputFile = new File(file.parent, fileName)
+    }
+}
