@@ -90,7 +90,12 @@ public class InitView extends BaseView {
                 jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 jfc.showDialog(new JLabel(), "选择");
                 File file=jfc.getSelectedFile();
-                adbText.setText(file.getAbsolutePath());
+                if (file != null) {
+                    adbText.setText(file.getAbsolutePath());
+                } else {
+                    toast.setMessage("请正确选择ADB文件！");
+                    toast.start();
+                }
             }
         });
         topPane.add(findBtn);
