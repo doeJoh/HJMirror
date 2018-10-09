@@ -2,13 +2,13 @@
 
 ## What is that?
 
-### HJMirror is an Java and Droid project to help users mirror their Droid Device to PC Screen, it was written in java and depends on ADB Service, So before you use it, you need to install the Java Enviroument and ADB Service first. You can get the Java Enviroument on Oracle website and ADB Service by installing the Android SDK.
+HJMirror is an Java and Droid project to help users mirror their Droid Device to PC Screen, it was written in java and depends on ADB Service, So before you use it, you need to install the Java Environment and ADB Service first. You can get the Java Environment on Oracle website and ADB Service by installing the Android SDK.
 
-### This project combines two major parts, Droid plugin and PC Server：
+### This project combines two parts, Droid plugin and PC Server：
 
-1. Droid plugin will read some device info to tell the PC Server how to display, and have a Java class which can be started by ADB to snapshoot this device and send to PC Server.
+1. Droid plugin will read some device info to tell the PC Server how to display, and have a Java class which will been started by ADB to snapshoot this device and send to PC Server.
 
-2. PC Server was written with Swings (It's not the best but the only way I can do, maybe someone can give me some help.) and based on ddmlib, it can check devices connect by USB on this PC, install the Droid plugin on Device, then started it to get snapshoot, and display it on the screen of course.
+2. PC Server was written with Swings (It's not the best but the only way I can do, maybe someone can give me some help.) and based on ddmlibs, it can check devices connection by USB on this PC, install the Droid plugin to Device, start to get snapshoots, and display them on the screen.
 
 
 ## How to build this project?
