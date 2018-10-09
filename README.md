@@ -1,42 +1,40 @@
 # HJMirror
 
+## What is that?
 
-## 如何构建
+### HJMirror is an Java and Droid project to help users mirror their Droid Device to PC Screen, it was written in java and depends on ADB Service, So before you use it, you need to install the Java Enviroument and ADB Service first. You can get the Java Enviroument on Oracle website and ADB Service by installing the Android SDK.
 
-1. 请先安装Java环境、Android SDK与Android Studio，并确保网络畅通！
+### This project combines two major parts, Droid plugin and PC Server：
 
-2. 导入项目，并运行droid/assemble任务，构建APK文件
+1. Droid plugin will read some device info to tell the PC Server how to display, and have a Java class which can be started by ADB to snapshoot this device and send to PC Server.
 
-3. 将生成的APK文件拷贝入server/src/main/conf目录中，并确保名称为：HJMirror.apk
-
-4. 执行server/release任务，进行server打包，会在build/libs下生成目标jar文件
-
-5. 使用java -jar 目标jar文件 来执行程序，然后按程序指导操作
+2. PC Server was written with Swings (It's not the best but the only way I can do, maybe someone can give me some help.) and based on ddmlib, it can check devices connect by USB on this PC, install the Droid plugin on Device, then started it to get snapshoot, and display it on the screen of course.
 
 
-## 如何使用
+## How to build this project?
 
-1. 请先确保您的机器上有ADB程序并已经安装了要投屏的手机的ADB驱动
+1. Pull project sources from branch like 1.0.0.
 
-2. 将您的手机开启ADB调试，并开启第三方APK安装
+2. Please make sure you have already installed JDK, Android SDK and Android Studio.
 
-3. 将您的手机通过USB连接到PC上
+3. Open this project by using Android Studio and don't update anything like gradle-plugin or gradle.
 
-4. 启动目标jar文件，然后在文件输入框中指定ADB程序所在路径
+4. Running a gradle task named '/build/assemble' of droid module. It will build an APK file in "./droid/build/outputs/apk/", if everything is ok.
 
-5. 点击开始连接，进行设备查询，如果上述过程正确，则应当会看到您的手机设备
+5. Copy this APK file to "./server/src/main/conf/", and make sure it named "HJMirror.apk".
 
-6. 双加设备进行连接
+6. Running a gradle task named '/other/release' of server module. It will build an Running Jar file in "./server/build/libs/", and it will copy the apk file in config to this folder either.
 
-7. 接下去程序会自动安装插件APK到您的手机，并启动获取设备信息
+7. Running this java file by using command "java -jar HJMirrorxxxxx.jar".
 
-8. 然后会关闭插件APK，开启截图进程并传递图像至PC端的服务程序
+8. Operate this JavaApp by follow the infomation.
 
-9. 如果第一次无法获取图像，可能是设备较慢导致，请重试一次
 
-## 改善意见
+## Improvement
 
-本程序还有较多问题，涵盖性能、代码、使用不便等等等等，目前依然没有什么实用价值。
+1. This project has already fast but not enough, it can reach 21fps on my Macbook and Nexus6p, but the CPU using-rate is pretty high, so it still need improvement on performance.
 
-About Language, this code write in Chinese, and need translate which this aurthor really got no idea.
+2. It's still pretty difficult on using, you have to install the JVM, ADB Service and Droid Device Driver at first, it's not good. So I think maybe I can build my own ADB service based on Android source code, and recode this PC Server by using some other techs like Golang, SDL or Qt. But it still need Windows user to install Driver at first, and I have no idea on it, sad.
+
+3. I wrote this code in one afternoon, so the quality of this code is terrible, it will need some time and some help to improve it.
 
