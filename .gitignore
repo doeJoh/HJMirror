@@ -50,3 +50,5 @@ freeline_project_description.json
 .idea/modules.xml
 .idea/runConfigurations.xml
 .idea/vcs.xml
+.DS_Store
+doc/.DS_Store
