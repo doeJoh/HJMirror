@@ -32,7 +32,7 @@ HJMirror is an Java and Droid project to help users mirror their Droid Device to
 
 ## Improvement
 
-1. This project has already fast but not enough, it can reach 21fps on my Macbook and Nexus6p, but the CPU using-rate is pretty high, so it still need improvement on performance.
+1. This project has already fast but not enough, it can reach 21fps on my Macbook and Nexus6p, but it still need improvement on performance.
 
 2. It's still pretty difficult on using, you have to install the JVM, ADB Service and Droid Device Driver at first, it's not good. So I think maybe I can build my own ADB service based on Android source code, and recode this PC Server by using some other techs like Golang, SDL or Qt. But it still need Windows user to install Driver at first, which I still get no idea, sad.
 
