@@ -1,4 +1,4 @@
-package com.hjess.app.utils;
+package com.hjess.mirror.utils;
 
 import android.app.Application;
 import android.content.Context;

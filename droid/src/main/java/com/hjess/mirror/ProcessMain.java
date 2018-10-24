@@ -1,9 +1,9 @@
-package com.hjess.app;
+package com.hjess.mirror;
 
 import android.graphics.Bitmap;
 
-import com.hjess.app.utils.HJLog;
-import com.hjess.app.utils.HJSnap;
+import com.hjess.mirror.utils.HJLog;
+import com.hjess.mirror.utils.HJSnap;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

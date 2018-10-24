@@ -1,4 +1,4 @@
-package com.hjess.app;
+package com.hjess.mirror;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -14,8 +14,8 @@ import android.view.KeyEvent;
 import android.view.ViewConfiguration;
 import android.widget.TextView;
 
-import com.hjess.app.utils.Utils;
-import com.hjess.app.utils.HJThread;
+import com.hjess.mirror.utils.Utils;
+import com.hjess.mirror.utils.HJThread;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -24,18 +24,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * 设置页面
- *
+ * InitActivity
  * Created by HalfmanG2 on 2018/1/15.
  */
 public class InitActivity extends Activity {
-
     private TextView tv;
     private int width;
     private int height;
     private int density;
     private String apkPath;
-
     private int port = -1;
 
     @Override
@@ -65,18 +62,15 @@ public class InitActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 获取设备参数
         DisplayMetrics metric = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metric);
         String ip = Utils.get().getIp(getApplication());
-        width = metric.widthPixels;     // 屏幕宽度（像素）
-        height = metric.heightPixels + getNavigationBarHeight();   // 屏幕高度（像素）
-        density = (int)(metric.density * 100.0f);      // 屏幕密度（0.75 / 1.0 / 1.5）
+        width = metric.widthPixels;
+        height = metric.heightPixels + getNavigationBarHeight();
+        density = (int)(metric.density * 100.0f);
         apkPath = getApplicationContext().getPackageResourcePath();
-        // 输出信息
         String msg = ip +" "+apkPath+" "+width+" "+height+" "+density+"\n";
         tv.setText(msg);
-        // 开启服务
         if (port != -1) {
             startServer(port);
         } else {
@@ -84,10 +78,6 @@ public class InitActivity extends Activity {
         }
     }
 
-    /**
-     * 启动初始化服务
-     * @param port 端口号
-     */
     private void startServer(final int port) {
         HJThread.getInstance().execute(new Runnable() {
             @Override
@@ -119,28 +109,28 @@ public class InitActivity extends Activity {
                     while(keepRunning) {
                         int opt = is.readInt();
                         switch (opt) {
-                            case 0x111: // 请求获取设备参数
-                                // 写屏幕宽度
+                            case 0x111: // Request Device Info
+                                // Screen Width
                                 os.writeInt(width);
                                 os.flush();
-                                // 写屏幕高度
+                                // Screen Height
                                 os.writeInt(height);
                                 os.flush();
-                                // 写像素密度*100
+                                // Screen Density * 100
                                 os.writeInt(density);
                                 os.flush();
-                                // 写APK路径
+                                // APK file Path
                                 os.writeUTF(apkPath);
                                 os.flush();
                                 break;
-                            case 0x222: // 请求断开
+                            case 0x222: // Request disconnect
                                 keepRunning = false;
                                 break;
                             default:
                                 break;
                         }
                     }
-                    // 延时3秒后在 UI 执行
+                    // Wait 3secs and finish.
                     HJThread.getInstance().executeByUIDelay(new Runnable() {
                         @Override
                         public void run() {
@@ -155,7 +145,7 @@ public class InitActivity extends Activity {
                         }
                     });
                 } finally {
-                    // 清理操作
+                    // release
                     try {
                         if (is != null) is.close();
                     } catch (IOException e) {
@@ -181,7 +171,6 @@ public class InitActivity extends Activity {
         });
     }
 
-    // 获取导航栏高度
     private int getNavigationBarHeight() {
         if (!isNavigationBarShow()) {
             return 0;
@@ -189,11 +178,9 @@ public class InitActivity extends Activity {
         Resources resources = getResources();
         int resourceId = resources.getIdentifier("navigation_bar_height",
                 "dimen", "android");
-        //获取NavigationBar的高度
         return resources.getDimensionPixelSize(resourceId);
     }
 
-    // 判断导航栏是否显示
     private boolean isNavigationBarShow() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             Display display = getWindowManager().getDefaultDisplay();

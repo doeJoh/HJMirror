@@ -1,10 +1,8 @@
-package com.hjess.app.utils;
+package com.hjess.mirror.utils;
 
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.os.Build;
-
-import com.hjess.app.utils.HJLog;
 
 import java.lang.reflect.Method;
 
