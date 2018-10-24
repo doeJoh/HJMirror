@@ -1,18 +1,15 @@
 package com.hjess.server.view;
 
 import com.android.ddmlib.IDevice;
-import com.hjess.server.MainConf;
-import com.hjess.server.base.BaseView;
-import com.hjess.server.util.HJDroid;
+import com.hjess.server.base.HJView;
+import com.hjess.server.util.HJAdb;
+import com.hjess.server.util.HJExc;
 import com.hjess.server.util.HJLog;
-import com.hjess.server.util.HJScreen;
-import com.hjess.server.util.HJThread;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -22,247 +19,144 @@ import java.net.Socket;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+import javax.swing.WindowConstants;
 
 /**
- * 屏幕视图
- * Created by HalfmanG2 on 2018/2/12.
+ * ScreenView
+ * Created by HalfmanG2 on 2018/10/22.
  */
-public class ScreenView extends BaseView {
-
-    /** 设备 */
+public class ScreenView extends HJView {
     private IDevice device;
-    /** 宽度 */
     private int width;
-    /** 高度 */
     private int height;
-    /** 保持连接 */
-    private volatile boolean keepRunning;
-    /** 端口号 */
-    private int port = 58357;
-    /** 图片 */
-    private volatile BufferedImage image;
+    private int realWidth;
+    private int realHeight;
+    private float density;
+    private String apkPath;
+    private int port;
 
-    public ScreenView(BaseView parent, IDevice device) {
+    ScreenView(HJView parent, IDevice device, int port, int width, int height, float density, String apkPath) {
         super(parent, device);
         this.device = device;
-    }
-
-    public synchronized BufferedImage getImage() {
-        return image;
-    }
-
-    public synchronized void setImage(BufferedImage image) {
-        this.image = image;
-        repaint();
-    }
-
-    public synchronized boolean isKeepRunning() {
-        return keepRunning;
-    }
-
-    public synchronized void setKeepRunning(boolean keepRunning) {
-        this.keepRunning = keepRunning;
+        this.width = width;
+        this.height = height;
+        this.density = density;
+        this.apkPath = apkPath;
+        this.port = port;
     }
 
     @Override
     protected void onStart() {
-        addWindowListener(new WindowListener() {
-            @Override
-            public void windowOpened(WindowEvent e) {}
-            @Override
-            public void windowClosing(WindowEvent e) {
-                // 关闭运行
-                setKeepRunning(false);
-                // 通知关闭
-                parent.onViewReturn(device);
-            }
-            @Override
-            public void windowClosed(WindowEvent e) {}
-            @Override
-            public void windowIconified(WindowEvent e) {}
-            @Override
-            public void windowDeiconified(WindowEvent e) {}
-            @Override
-            public void windowActivated(WindowEvent e) {}
-            @Override
-            public void windowDeactivated(WindowEvent e) {}
-        });
+        realWidth = (int) (width / density);
+        realHeight = (int) (height / density);
         JFrame.setDefaultLookAndFeelDecorated(true);
-        // 设置标题
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(device.getName());
-        // 设置背景色
         setBackground(Color.lightGray);
-        // 获取屏幕尺寸
-        Dimension size = HJScreen.getScreenSize();
-        width = size.width / 8;
-        height = size.height / 4;
-        // 设置View尺寸为屏幕尺寸1/4
-        setPreferredSize(new Dimension(width, height));
+        setPreferredSize(new Dimension(realWidth, realHeight));
     }
 
     @Override
-    public void update(Graphics graphics) {
-        super.update(graphics);
+    protected void onDisplay() {
+        // Start plugin.
+        HJExc.get().execute(() -> {
+            try {
+                HJAdb.get().runMainClassOnDroid(device, apkPath,
+                        "com.hjess.mirror.ProcessMain", ""+port);
+            } catch (Exception ignore) {}
+        });
+        connectPlugin(port, realWidth, realHeight);
     }
 
     @Override
     public void paint(Graphics g) {
         // 绘制图片
-        if (image != null) {
-            g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+        BufferedImage img = getImage();
+        if (img != null) {
+            g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
         }
     }
 
-    /**
-     * 渲染屏幕尺寸
-     * @param width 屏幕宽度
-     * @param height 屏幕高度
-     * @param density 屏幕密度
-     * @param apkPath APK路径
-     */
-    private void renderScreen(int width, int height, float density, String apkPath) {
-        // 获取 IP 地址
-        int port = 58359;
-        // 调整窗体尺寸
-        int realWidth = (int) (width / density);
-        int realHeight = (int) (height / density);
-        setPreferredSize(new Dimension(realWidth, realHeight));
-        pack();
-        repaint();
-        // 启动插件
-        HJThread.get().execute(() -> {
-            startPlugin(apkPath, port);
-        });
-        // 开启图片接受服务
-        startRenderServer(port, realWidth, realHeight);
-    }
-
-    /**
-     * 启动服务
-     * @param port 服务端口号
-     */
-    private void startRenderServer(int port, int width, int height) {
-        HJThread.get().execute(() -> {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+    private void connectPlugin(int port, int width, int height) {
+        HJExc.get().execute(() -> {
             Socket client = null;
             DataInputStream dis = null;
             DataOutputStream dos = null;
+            setKeepRunning(true);
             try {
-                // 开始连接
-                setKeepRunning(true);
-                device.createForward(port+1, port);
+                device.createForward(port + 1, port);
+                HJLog.i("Connecting..." + isKeepRunning());
+                client = new Socket("127.0.0.1", port + 1);
+                dis = new DataInputStream(client.getInputStream());
+                dos = new DataOutputStream(client.getOutputStream());
+                dos.writeInt(width);
+                dos.writeInt(height);
                 while (isKeepRunning()) {
-                    client = new Socket("127.0.0.1", port+1);
-                    dis = new DataInputStream(client.getInputStream());
-                    dos = new DataOutputStream(client.getOutputStream());
-                    dos.writeInt(width);
-                    dos.writeInt(height);
-                    while (isKeepRunning()) {
-                        // 写读图片状态字
-                        dos.writeInt(0x11);
-                        dos.flush();
-                        int length = dis.readInt();
-                        if (length > 0) {
-                            byte[] da = new byte[length];
-                            dis.readFully(da);
-                            ByteArrayInputStream in = new ByteArrayInputStream(da);
-                            // 读文件
-                            BufferedImage image = ImageIO.read(in);
-                            // 关闭输入流
-                            in.close();
-                            // 渲染到 UI
-                            HJThread.get().executeByUI(() -> setImage(image));
-                        }
+                    dos.writeInt(0x11);
+                    dos.flush();
+                    int length = dis.readInt();
+                    if (length > 0) {
+                        byte[] da = new byte[length];
+                        dis.readFully(da);
+                        ByteArrayInputStream in = new ByteArrayInputStream(da);
+                        BufferedImage image = ImageIO.read(in);
+                        in.close();
+                        HJExc.get().executeByUI(() -> setImage(image));
                     }
-                    // 关闭连接
-                    dis.close();
-                    dos.close();
-                    client.close();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+                dis.close();
+                dos.close();
+                client.close();
+            } catch (Exception ignore) {
+                HJLog.i("Connect failed, try again.");
             } finally {
+                // release
                 if (dos != null) {
                     try {
                         dos.close();
-                    } catch (IOException e) {
-                        // DoNothing
-                    }
+                    } catch (IOException ignore) {}
                 }
                 if (dis != null) {
                     try {
                         dis.close();
-                    } catch (IOException e) {
-                        // DoNothing
-                    }
+                    } catch (IOException ignore) {}
                 }
                 if (client != null) {
                     try {
                         client.close();
-                    } catch (IOException e) {
-                        // DoNothing
-                    }
+                    } catch (IOException ignore) {}
                 }
-                HJLog.d("图片服务关闭");
+                // wait 2secs and retry.
+                try {
+                    Thread.sleep(2000);
+                } catch (Exception ignore) {}
+                if (isKeepRunning()) {
+                    HJExc.get().executeByUI(() -> connectPlugin(port, width, height));
+                }
             }
         });
     }
 
-    private void startPlugin(String apkPath, int port) {
-        // 启动安卓端插件
-        try {
-            HJDroid.get().runMainClassOnDroid(device, apkPath,
-                    MainConf.APK_PROCESS, ""+port);
-        } catch (Exception e) {
-            HJLog.d("Error:"+e.toString());
-        }
+    private volatile BufferedImage image;
+    private synchronized BufferedImage getImage() {
+        return image;
+    }
+    private synchronized void setImage(BufferedImage image) {
+        this.image = image;
+        repaint();
     }
 
+    private volatile boolean keepRunning;
+    private synchronized boolean isKeepRunning() {
+        return keepRunning;
+    }
+    private synchronized void setKeepRunning(boolean keepRunning) {
+        this.keepRunning = keepRunning;
+    }
 
     @Override
-    protected void onDisplay() {
-        HJThread.get().execute(() -> {
-            // 安装并启动插件
-            HJDroid.get().installAndRunApk(device, MainConf.APK_PATH, MainConf.APK_ID,
-                    MainConf.ACT_PATH, ""+port);
-            // 启动线程读取信息
-            tryReadInfo();
-        });
-    }
-
-    /**
-     * 尝试读取设备信息
-     */
-    private void tryReadInfo() {
-        HJThread.get().execute(() -> {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            HJDroid.get().readDeviceInfo(device, port, port+1, objects -> {
-                Boolean ret = (Boolean) objects[0];
-                if (ret) {
-                    int width = (int) objects[1];
-                    int height = (int) objects[2];
-                    float density = (int) objects[3];
-                    String apkPath = (String) objects[4];
-                    // 通知获取成功
-                    HJThread.get().executeByUI(() -> renderScreen(width, height, density / 100.0f, apkPath));
-                } else {
-                    // 重试
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    tryReadInfo();
-                }
-            });
-        });
+    public void windowClosed(WindowEvent e) {
+        setKeepRunning(false);
+        parent.onViewReturn(device);
     }
 }

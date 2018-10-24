@@ -6,44 +6,34 @@ import java.util.concurrent.Executors;
 import javax.swing.SwingUtilities;
 
 /**
- * 线程工具
+ * Thread Utils
+ *
  * Created by HalfmanG2 on 17/5/27.
  */
-public class HJThread {
-    /** 线程池 */
-    private static Executor mExecutor = Executors.newFixedThreadPool(6); // 获取线程池对象
-
-    /**
-     * 创建者
-     */
+public class HJExc {
+    private static Executor mExecutor = Executors.newFixedThreadPool(6);
     private static class ThreadHolder {
-        private static final HJThread mgr = new HJThread();
+        private static final HJExc mgr = new HJExc();
     }
 
-    /**
-     * 获取当前实例对象
-     *
-     * @return
-     */
-    public static HJThread get() {
+    public static HJExc get() {
         return ThreadHolder.mgr;
     }
 
     /**
-     * Method_线程执行
-     *
-     * @param runnable 线程
+     * execute a thread
+     * @param runnable thread task
      */
     public void execute(Runnable runnable) {
         mExecutor.execute(runnable);
     }
 
     /**
-     * Method_在主线程中执行
-     *
-     * @param runnable 线程
+     * execute a task on UI thread.
+     * @param runnable UI thread task
      */
     public void executeByUI(Runnable runnable) {
         SwingUtilities.invokeLater(runnable);
     }
+
 }

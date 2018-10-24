@@ -1,217 +1,202 @@
 package com.hjess.server.view;
 
 import com.android.ddmlib.IDevice;
-import com.hjess.server.base.BaseView;
+import com.hjess.server.base.HJView;
 import com.hjess.server.base.HJTable;
-import com.hjess.server.base.OnClickListener;
-import com.hjess.server.base.Toast;
-import com.hjess.server.util.HJDroid;
-import com.hjess.server.util.HJScreen;
+import com.hjess.server.util.HJAdb;
+import com.hjess.server.util.HJEnv;
+import com.hjess.server.util.HJExc;
+import com.hjess.server.util.HJRes;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.Rectangle;
-import java.io.File;
-import java.util.Hashtable;
+import java.awt.event.ComponentEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
 import java.util.Vector;
 
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-
+import javax.swing.SwingConstants;
+import javax.swing.WindowConstants;
+import javax.swing.table.DefaultTableModel;
 
 /**
- * 设置页面
- * Created by HalfmanG2 on 2018/1/3.
+ * InitView
+ * Created by HalfmanG2 on 2018/10/22.
  */
-public class InitView extends BaseView {
-    /** 宽度 */
-    private int width;
-    /** 高度 */
-    private int height;
-    /** 当前启动屏幕表 */
-    private Hashtable<IDevice, ScreenView> currentViews;
-
-    private Toast toast;
+public class InitView extends HJView implements HJTable.OnItemClickListener {
 
     public InitView() {
         super(null, 0x0);
     }
 
+    private JPanel panel;
+    private JLabel label;
+    private JScrollPane scrollPane;
+    private HJTable table;
+    private JLabel author;
+
+    private DefaultTableModel tableModel;
+
+    private String textDoubleClick;
 
     @Override
-    public void onStart() {
+    protected void onStart() {
+        // Titlebar
         JFrame.setDefaultLookAndFeelDecorated(true);
-        // 设置标题
-        setTitle("HJMirror初始化设置");
-        // 设置关闭操作
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // 设置背景色
-        setBackground(Color.lightGray);
-        // 获取屏幕尺寸
-        Dimension size = HJScreen.getScreenSize();
-        width = size.width / 2;
-        height = size.height / 2;
-        // 设置View尺寸为屏幕尺寸1/4
+        setTitle(HJRes.get().getValue("InitView_Title"));
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        // Size and location
+        Dimension size = HJEnv.getScreenSize();
+        int width = size.width / 2;
+        int height = size.height / 2;
+        setLocation(size.width / 4, size.height / 4);
         setPreferredSize(new Dimension(width, height));
-
+        // Layout
         GridLayout gird=new GridLayout(1,1);
         setLayout(gird);
+        // Panel
+        panel = new JPanel();
+        panel.setLayout(null);
+        // Info Label
+        label = new JLabel();
+        label.setBounds(5, 5, width - 10, 30);
+        panel.add(label);
+        // Device Table
+        Vector<String> columnNames = new Vector<>();
+        columnNames.add(HJRes.get().getValue("InitView_Device_Name"));
+        columnNames.add(HJRes.get().getValue("InitView_Device_Status"));
+        columnNames.add(HJRes.get().getValue("InitView_Operation"));
+        tableModel = new DefaultTableModel(new Vector<Vector<String>>(), columnNames);
+        table = new HJTable();
+        table.setModel(tableModel);
+        table.setEnabled(false);
+        table.getColumnModel().getColumn(2).setMaxWidth(100);
+        table.setEditable(false);
+        // ScrollPane
+        scrollPane = new JScrollPane(table);
+        scrollPane.setBounds(5, 40, width - 10, height - 90);
+        panel.add(scrollPane);
+        // Author Label
+        author = new JLabel();
+        author.setHorizontalAlignment(SwingConstants.RIGHT);
+        author.setForeground(new Color(0x666666));
+        author.setBounds(5, height - 50, width - 10, 30);
+        author.setText("Created by HalfmanG2 2018");
+        panel.add(author);
+        add(panel);
+    }
 
-        JPanel topPane=new JPanel();//初始化面板
-        topPane.setLayout(null);//设置布局NULL
+    @Override
+    protected void onDisplay() {
+        textDoubleClick = HJRes.get().getValue("InitView_Double_click");
+        String infoHead = HJRes.get().getValue("InitView_Checking");
+        HJExc.get().execute(() -> {
+            try {
+                HJExc.get().executeByUI(() -> label.setText(infoHead+"Starting..."));
+                Thread.sleep(2000);
+                HJAdb.get().checkAndInstall(new HJAdb.Response() {
+                    @Override
+                    public void onMessage(String msg) {
+                        HJExc.get().executeByUI(() -> label.setText(infoHead+msg));
+                    }
+                    @Override
+                    public void onSuccess() {
+                        HJExc.get().executeByUI(() -> {
+                            loadDevice();
+                        });
+                    }
+                    @Override
+                    public void onFailed() {
 
-        // ADB 路径
-        JLabel adbNotify = new JLabel();
-        adbNotify.setBounds(10, 5, width - 20, 30);
-        adbNotify.setText("1、请在下方输入ADB程序绝对路径:");
-        topPane.add(adbNotify);
-
-        // ADB 路径文本框
-        JTextField adbText = new JTextField();
-        adbText.setText(HJDroid.ADB_PATH);
-        adbText.setBounds(10, 40, width - 100, 40);
-        topPane.add(adbText);
-
-        // 浏览按钮
-        JButton findBtn = new JButton();
-        findBtn.setText("浏览");
-        findBtn.setBounds(width - 80, 40, 70, 40);
-        findBtn.addMouseListener(new OnClickListener() {
-            @Override
-            public void onClick() {
-                JFileChooser jfc=new JFileChooser();
-                jfc.setDialogTitle("选择ADB文件路径");
-                jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                jfc.showDialog(new JLabel(), "选择");
-                File file=jfc.getSelectedFile();
-                if (file != null) {
-                    adbText.setText(file.getAbsolutePath());
-                } else {
-                    toast.setMessage("请正确选择ADB文件！");
-                    toast.start();
-                }
-            }
-        });
-        topPane.add(findBtn);
-
-        JLabel connNotify = new JLabel();
-        connNotify.setBounds(10, 85, width - 20, 30);
-        connNotify.setText("2、使用数据线连上手机，然后点击连接按钮，如果无数据，请检查手机驱动！");
-        topPane.add(connNotify);
-
-        // 连接按钮
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setBounds(0, 120, width, height - 120);
-        JButton connectBtn = new JButton();
-        Rectangle rect = connectBtn.getBounds();
-        connectBtn.setBounds(rect);
-        connectBtn.setText("开始连接");
-        connectBtn.addMouseListener(new OnClickListener() {
-            @Override
-            public void onClick() {
-                // 尝试连接设备
-                HJDroid.get().findDevices(adbText.getText(), objects -> {
-                    Boolean isSuccess = (Boolean) objects[0];
-                    String message = (String) objects[1];
-                    if (isSuccess) {
-                        IDevice[] devices = HJDroid.get().getDevices();
-                        if (devices != null && devices.length != 0) {
-                            // 删除所有视图
-                            bottomPanel.removeAll();
-                            // 开始渲染设备列表
-                            onRenderList(bottomPanel, devices);
-                            // 刷新页面
-                            bottomPanel.repaint();
-                        } else {
-                            // 弹框
-                            toast.setMessage("未发现设备，请确认已连接手机并安装了手机USB驱动！");
-                            toast.start();
-                        }
-                    } else {
-                        // 提示错误
-                        toast.setMessage(message);
-                        toast.start();
                     }
                 });
-            }
+            } catch (InterruptedException ignored) {}
         });
-        // 按钮容器
-        bottomPanel.add(connectBtn);
-        topPane.add(bottomPanel);
-        // 插入 Panel
-        add(topPane);
     }
 
-    private void onRenderList(JPanel panel, IDevice[] devices) {
-        Vector<String> columnNames = new Vector<>();
-        columnNames.add("设备名称");
-        columnNames.add("设备状态");
-        columnNames.add("操作说明");
-        // 数据列表
-        Vector<Vector<String>> data = new Vector<>();
-        // 遍历添加
-        for (IDevice device : devices) {
-            Vector<String> row = new Vector<>();
-            // 插入名称
-            row.add(device.getName());
-            // 插入状态
-            row.add(device.getState().name());
-            // 插入操作
-            row.add("双击启动");
-            // 插入到列表
-            data.add(row);
-        }
-        // 构造列表
-        HJTable jTable = new HJTable(data, columnNames);
-        jTable.getColumnModel().getColumn(2).setMaxWidth(80);
-        jTable.setEditable(false);
-        jTable.setOnItemClickListener((e, row, col) -> {
-            if (e.getClickCount() >= 2) {
-                // 判定为双击
-                if (row < devices.length) {
-                    // 启动ScreenView
-                    showScreenView(devices[row]);
-                }
+    private IDevice[] devices;
+    private void refreshDevices(IDevice[] devices) {
+        this.devices = devices;
+        if (devices.length == 0) {
+            table.setEnabled(false);
+            table.setOnItemClickListener(null);
+            tableModel.setRowCount(0);
+        } else {
+            table.setEnabled(true);
+            table.setOnItemClickListener(this);
+            tableModel.setRowCount(0);
+            for (IDevice device : devices) {
+                Vector<String> row = new Vector<>();
+                row.add(device.getName());
+                row.add(device.getState().name());
+                row.add(textDoubleClick);
+                tableModel.addRow(row);
             }
-        });
-        // 插入到布局
-        JScrollPane scrollPane = new JScrollPane(jTable);
-        scrollPane.setBounds(5, 0, panel.getWidth() - 10, panel.getHeight() - 40);
-        panel.add(scrollPane);
+        }
     }
 
-    private void showScreenView(IDevice device) {
-        if (currentViews == null) {
-            currentViews = new Hashtable<>();
-        }
-        if (!currentViews.containsKey(device)) {
-            // 启动下一个视图
-            ScreenView screenView = new ScreenView(this, device);
-            currentViews.put(device, screenView);
-            screenView.start();
+    @Override
+    public void onClick(MouseEvent e, int row, int col) {
+        if (e.getClickCount() >= 2) {
+            if (row < devices.length) {
+                setKeepRunning(false);
+                label.setText(HJRes.get().getValue("InitView_Connect_Success"));
+                ConnectView connectView = new ConnectView(this, devices[row]);
+                connectView.start();
+            }
         }
     }
 
     @Override
     public void onViewReturn(Object requestCode, Object... objects) {
-        super.onViewReturn(requestCode, objects);
-        if (requestCode != null && requestCode instanceof IDevice) {
-            // ScreenView关闭触发
-            IDevice device = (IDevice) requestCode;
-            currentViews.remove(device);
-            toast.setMessage(device.getName()+"已经关闭!");
-            toast.start();
-        }
+        // Restart device sync.
+        table.setEnabled(false);
+        table.setOnItemClickListener(null);
+        tableModel.setRowCount(0);
+        loadDevice();
+    }
+
+    private void loadDevice() {
+        label.setText(HJRes.get().getValue("InitView_Waiting_Connect"));
+        setKeepRunning(true);
+        HJExc.get().execute(() -> {
+            while (isKeepRunning()) {
+                try {
+                    IDevice[] devices = HJAdb.get().startAndFind();
+                    HJExc.get().executeByUI(() -> refreshDevices(devices));
+                    Thread.sleep(5000);
+                } catch (Exception e) {
+                    setKeepRunning(false);
+                    HJExc.get().executeByUI(() -> label.setText(HJRes.get().getValue("InitView_Adb_failed")));
+                }
+            }
+        });
+    }
+
+    private volatile boolean keepRunning = true;
+    private synchronized boolean isKeepRunning() {
+        return keepRunning;
+    }
+    private synchronized void setKeepRunning(boolean keepRunning) {
+        this.keepRunning = keepRunning;
     }
 
     @Override
-    protected void onDisplay() {
-        toast = new Toast(this, "", 1500);
+    public void windowClosing(WindowEvent e) {
+        setKeepRunning(false);
+    }
+
+    @Override
+    public void componentResized(ComponentEvent e) {
+        // resize
+        Dimension size = getSize();
+        label.setBounds(5, 5, size.width - 10, 30);
+        scrollPane.setBounds(5, 40, size.width - 10, size.height - 90);
+        author.setBounds(5, size.height - 50, size.width - 10, 30);
     }
 }

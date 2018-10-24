@@ -7,9 +7,11 @@ project.ext {
     // 打包名称
     baseName = 'HJMirror'
     // 入口类名
-    mainClass = 'com.hjess.server.MainApp'
+    mainClass = 'com.hjess.server.HJMirror'
     // 版本信息
-    version = '1.0.0'
+    version = '2.0.0'
+    // 作者
+    author = 'HalfmanG2'
 }
 
 // 复制配置文件
@@ -23,8 +25,14 @@ task release(type: Jar, dependsOn: 'copyData') {
     manifest {
         // 清单属性
         attributes 'Implementation-Title': project.ext.title,
+                'Implementation-Vendor': project.ext.author,
                 'Implementation-Version': project.ext.version,
-                'Main-Class': project.ext.mainClass
+                'Main-Class': project.ext.mainClass,
+                'Extension-Name': project.ext.title,
+                'Specification-Title': project.ext.title,
+                'Specification-Vendor': project.ext.author,
+                'Specification-Version': project.ext.version
+
     }
     // jar包名
     baseName = project.ext.baseName + project.ext.version
