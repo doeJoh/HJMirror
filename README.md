@@ -1,6 +1,4 @@
-# HJMirror
-
-## [ENGLISH](README_EN.md)
+# HJMirror ([ENGLISH](README_EN.md))
 
 ## 项目介绍?
 

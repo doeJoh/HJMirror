@@ -1,6 +1,4 @@
-# HJMirror
-
-## [中文说明](README.md)
+# HJMirror ([中文说明](README.md))
 
 ## What is that?
 
