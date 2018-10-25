@@ -1,7 +1,9 @@
 package com.hjess.mirror;
 
 import android.graphics.Bitmap;
+import android.view.MotionEvent;
 
+import com.hjess.mirror.utils.HJInput;
 import com.hjess.mirror.utils.HJLog;
 import com.hjess.mirror.utils.HJSnap;
 
@@ -44,7 +46,13 @@ public class ProcessMain {
     private volatile int width;
     // 要截屏的屏幕高度
     private volatile int height;
+    // 积压的图片计数
+    private volatile int stackImageCount;
+    // 事件请求工具
+    private HJInput input;
 
+    private ServerSocket serverSocket = null;
+    private Socket socket = null;
 
     /**
      * 启动服务
@@ -52,11 +60,11 @@ public class ProcessMain {
      */
     private void startServer(final int port) {
         // 开启子线程发送截图
-        new Thread(new Runnable() {
+        Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                ServerSocket serverSocket = null;
-                Socket socket = null;
+                serverSocket = null;
+                socket = null;
                 DataOutputStream dos = null;
                 DataInputStream dis = null;
                 try {
@@ -94,7 +102,26 @@ public class ProcessMain {
                                 } else {
                                     dos.writeInt(-1);
                                 }
+                            } else if (type == 0x22) {
+                                int action = dis.readInt();
+                                switch (action) {
+                                    case 0:
+                                        action = MotionEvent.ACTION_DOWN;
+                                        break;
+                                    case 1:
+                                        action = MotionEvent.ACTION_MOVE;
+                                        break;
+                                    case 2:
+                                        action = MotionEvent.ACTION_UP;
+                                        break;
+                                }
+                                int x = dis.readInt();
+                                int y = dis.readInt();
+                                int res = input.sendTouchEvent(action, x, y) ? 1 : 0;
+                                dos.writeInt(res);
+                                dos.flush();
                             }
+                            resetCount();
                         } catch (EOFException e) {
                             break;
                         }
@@ -106,30 +133,23 @@ public class ProcessMain {
                     if (dos != null) {
                         try {
                             dos.close();
-                        } catch (IOException e) {
-                            // DoNothing
-                        }
+                        } catch (IOException ignore) {}
                     }
                     if (dis != null) {
                         try {
                             dis.close();
-                        } catch (IOException e) {
-                            // DoNothing
-                        }
+                        } catch (IOException ignore) {}
                     }
                     if (socket != null) {
                         try {
                             socket.close();
-                        } catch (IOException e) {
-                            // DoNothing
-                        }
+                        } catch (IOException ignore) {}
                     }
                     if (serverSocket != null) {
                         try {
+                            HJLog.d("Connect lost!");
                             serverSocket.close();
-                        } catch (Exception e) {
-                            // DoNothing
-                        }
+                        } catch (Exception ignore) {}
                     }
                     // 打印连接
                     HJLog.d(Constants.PROCESS_MAIN_CONNECT_END);
@@ -137,8 +157,9 @@ public class ProcessMain {
                     setEnd(true);
                 }
             }
-        }).start();
-
+        });
+        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.start();
         // Main线程截屏
         int width;
         int height;
@@ -155,6 +176,12 @@ public class ProcessMain {
                 byte[] da = imageToBytes(bitmap);
                 bitmap.recycle();
                 setData(da);
+            }
+            if (addCount() >= 200) {
+                try {
+                    socket.close();
+                    setEnd(true);
+                } catch (IOException ignore) {}
             }
             try {
                 Thread.sleep(20);
@@ -218,6 +245,15 @@ public class ProcessMain {
         this.height = height;
     }
 
+    private synchronized int addCount() {
+        stackImageCount++;
+        return stackImageCount;
+    }
+
+    private synchronized void resetCount() {
+        stackImageCount = 0;
+    }
+
     /**
      * 获取当前实例对象
      */
@@ -225,7 +261,9 @@ public class ProcessMain {
         return Holder.mgr;
     }
     /** 构造方法 */
-    private ProcessMain() {}
+    private ProcessMain() {
+        input = new HJInput();
+    }
     /**
      * 创建者
      */

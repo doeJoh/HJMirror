@@ -1,6 +1,7 @@
 package com.hjess.server.view;
 
 import com.android.ddmlib.IDevice;
+import com.hjess.server.HJMirror;
 import com.hjess.server.base.HJView;
 import com.hjess.server.util.HJAdb;
 import com.hjess.server.util.HJEnv;
@@ -18,8 +19,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.WindowConstants;
 
 /**
  * ConnectView
@@ -47,7 +51,8 @@ public class ConnectView extends HJView {
     @Override
     protected void onStart() {
         // Set no titlebar.
-        setUndecorated(true);
+        JFrame.setDefaultLookAndFeelDecorated(true);
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         // Don't Resize.
         setResizable(false);
         // Set background.
@@ -68,6 +73,7 @@ public class ConnectView extends HJView {
         JPanel panel = new JPanel();
         panel.setLayout(null);
         label = new JLabel();
+        label.setHorizontalAlignment(SwingConstants.CENTER);
         label.setBounds(5, 5, width - 10, height - 10);
         panel.add(label);
         add(panel);
@@ -197,8 +203,7 @@ public class ConnectView extends HJView {
 
     // Launch ScreenView
     private void startScreenView(int width, int height, float density, String apkPath) {
-        ScreenView screenView = new ScreenView(parent, device, 58359, width, height, density, apkPath);
-        screenView.start();
+        HJMirror.get().showView(new ScreenView(parent, device, snapPort, snapAdbPort, width, height, density, apkPath));
         dispose();
     }
 }

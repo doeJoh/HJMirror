@@ -1,6 +1,8 @@
 package com.hjess.server.base;
 
+import com.hjess.server.HJMirror;
 import com.hjess.server.util.HJExc;
+import com.hjess.server.util.HJLog;
 
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -75,6 +77,12 @@ public abstract class HJView extends JFrame implements WindowListener, Component
     protected abstract void onDisplay();
 
     protected abstract void onStart();
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        HJMirror.get().onDipose(this);
+    }
 
     @Override
     public void windowOpened(WindowEvent e) {}

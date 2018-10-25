@@ -1,6 +1,10 @@
 package com.hjess.server;
 
+import com.hjess.server.base.HJView;
+import com.hjess.server.util.HJExc;
 import com.hjess.server.view.InitView;
+
+import java.util.LinkedList;
 
 /**
  * HJMirror,
@@ -16,9 +20,30 @@ public class HJMirror {
         return AppHolder.INSTANCE;
     }
 
+    private LinkedList<HJView> viewStack = new LinkedList<>();
+
+    public void showView(HJView view) {
+        viewStack.add(view);
+        view.start();
+    }
+
+    public void onDipose(HJView view) {
+        viewStack.remove(view);
+        if (viewStack.size() == 0) {
+            // wait 3secs and kill process.
+            HJExc.get().execute(() -> {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ignore) {}
+                if (viewStack.size() == 0) {
+                    HJExc.get().executeByUI(() -> System.exit(0));
+                }
+            });
+        }
+    }
+
     private void onCreate(String[] args) {
-        InitView initView = new InitView();
-        initView.start();
+        showView(new InitView());
     }
 
     private static class AppHolder {

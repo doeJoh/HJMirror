@@ -9,6 +9,9 @@ import com.hjess.server.util.HJLog;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -34,8 +37,11 @@ public class ScreenView extends HJView {
     private float density;
     private String apkPath;
     private int port;
+    private int adbPort;
 
-    ScreenView(HJView parent, IDevice device, int port, int width, int height, float density, String apkPath) {
+    private EventQueue queue;
+
+    ScreenView(HJView parent, IDevice device, int port, int adbPort, int width, int height, float density, String apkPath) {
         super(parent, device);
         this.device = device;
         this.width = width;
@@ -43,17 +49,22 @@ public class ScreenView extends HJView {
         this.density = density;
         this.apkPath = apkPath;
         this.port = port;
+        this.adbPort = adbPort;
+        this.queue = new EventQueue(density);
     }
 
     @Override
     protected void onStart() {
+        addMouseListener(mouseListener);
+        addMouseMotionListener(mouseMotionListener);
         realWidth = (int) (width / density);
         realHeight = (int) (height / density);
+        HJLog.i(width+" "+height);
         JFrame.setDefaultLookAndFeelDecorated(true);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(device.getName());
         setBackground(Color.lightGray);
-        setPreferredSize(new Dimension(realWidth, realHeight));
+        setPreferredSize(new Dimension(realWidth, realHeight + 30));
     }
 
     @Override
@@ -65,7 +76,7 @@ public class ScreenView extends HJView {
                         "com.hjess.mirror.ProcessMain", ""+port);
             } catch (Exception ignore) {}
         });
-        connectPlugin(port, realWidth, realHeight);
+        connectPlugin(port, adbPort);
     }
 
     @Override
@@ -73,25 +84,61 @@ public class ScreenView extends HJView {
         // 绘制图片
         BufferedImage img = getImage();
         if (img != null) {
-            g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
+            g.drawImage(img, 0, 30, getWidth(), getHeight() - 30, null);
         }
     }
 
-    private void connectPlugin(int port, int width, int height) {
+    private MouseListener mouseListener = new MouseListener() {
+        @Override
+        public void mouseClicked(MouseEvent e) {}
+        @Override
+        public void mousePressed(MouseEvent e) {
+            queue.addEvent(0, e.getX(), e.getY() - 30);
+        }
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            queue.addEvent(2, e.getX(), e.getY() - 30);
+        }
+        @Override
+        public void mouseEntered(MouseEvent e) {}
+        @Override
+        public void mouseExited(MouseEvent e) {}
+    };
+
+    private MouseMotionListener mouseMotionListener = new MouseMotionListener() {
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            queue.addEvent(1, e.getX(), e.getY() - 30);
+        }
+        @Override
+        public void mouseMoved(MouseEvent e) {}
+    };
+
+    private void connectPlugin(int port, int adbPort) {
         HJExc.get().execute(() -> {
             Socket client = null;
             DataInputStream dis = null;
             DataOutputStream dos = null;
             setKeepRunning(true);
             try {
-                device.createForward(port + 1, port);
+                device.createForward(adbPort, port);
                 HJLog.i("Connecting..." + isKeepRunning());
-                client = new Socket("127.0.0.1", port + 1);
+                client = new Socket("127.0.0.1", adbPort);
                 dis = new DataInputStream(client.getInputStream());
                 dos = new DataOutputStream(client.getOutputStream());
-                dos.writeInt(width);
-                dos.writeInt(height);
+                dos.writeInt(realWidth);
+                dos.writeInt(realHeight);
                 while (isKeepRunning()) {
+                    // write event.
+                    EventQueue.Event event = queue.getEvent();
+                    if (event != null) {
+                        dos.writeInt(0x22);
+                        dos.writeInt(event.action);
+                        dos.writeInt(event.x);
+                        dos.writeInt(event.y);
+                        dis.readInt();
+                    }
+                    // read image.
                     dos.writeInt(0x11);
                     dos.flush();
                     int length = dis.readInt();
@@ -131,7 +178,7 @@ public class ScreenView extends HJView {
                     Thread.sleep(2000);
                 } catch (Exception ignore) {}
                 if (isKeepRunning()) {
-                    HJExc.get().executeByUI(() -> connectPlugin(port, width, height));
+                    HJExc.get().executeByUI(() -> connectPlugin(port, adbPort));
                 }
             }
         });
@@ -159,4 +206,5 @@ public class ScreenView extends HJView {
         setKeepRunning(false);
         parent.onViewReturn(device);
     }
+
 }

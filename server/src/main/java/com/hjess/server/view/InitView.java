@@ -1,6 +1,7 @@
 package com.hjess.server.view;
 
 import com.android.ddmlib.IDevice;
+import com.hjess.server.HJMirror;
 import com.hjess.server.base.HJView;
 import com.hjess.server.base.HJTable;
 import com.hjess.server.util.HJAdb;
@@ -146,8 +147,7 @@ public class InitView extends HJView implements HJTable.OnItemClickListener {
             if (row < devices.length) {
                 setKeepRunning(false);
                 label.setText(HJRes.get().getValue("InitView_Connect_Success"));
-                ConnectView connectView = new ConnectView(this, devices[row]);
-                connectView.start();
+                HJMirror.get().showView(new ConnectView(this, devices[row]));
             }
         }
     }
