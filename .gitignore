@@ -30,11 +30,6 @@ captures/
 
 # Intellij
 *.iml
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/gradle.xml
-.idea/dictionaries
-.idea/libraries
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
@@ -46,9 +41,7 @@ google-services.json
 freeline.py
 freeline/
 freeline_project_description.json
-.idea/misc.xml
-.idea/modules.xml
-.idea/runConfigurations.xml
-.idea/vcs.xml
 .DS_Store
 doc/.DS_Store
+
+.idea
